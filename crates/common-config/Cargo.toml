@@ -1,0 +1,16 @@
+[package]
+name = "common-config"
+description = "Layered configuration loading (files + environment)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+common-error.workspace = true
+config.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

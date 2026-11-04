@@ -1,0 +1,31 @@
+image: rust:latest
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - .cargo/registry
+    - target/
+
+stages:
+  - check
+  - test
+
+fmt:
+  stage: check
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --all -- --check
+
+clippy:
+  stage: check
+  script:
+    - rustup component add clippy
+    - cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+test:
+  stage: test
+  script:
+    - cargo test --workspace --all-features

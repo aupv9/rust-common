@@ -1,0 +1,31 @@
+[package]
+name = "common"
+description = "Facade re-exporting the common-* crates behind feature flags."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+full = ["config", "telemetry", "utils"]
+config = ["dep:common-config"]
+telemetry = ["dep:common-telemetry"]
+utils = ["dep:common-utils"]
+
+[dependencies]
+common-error.workspace = true
+common-config = { workspace = true, optional = true }
+common-telemetry = { workspace = true, optional = true }
+common-utils = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde.workspace = true
+
+[[example]]
+name = "basic"
+required-features = ["full"]
+
+[lints]
+workspace = true
