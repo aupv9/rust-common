@@ -5,12 +5,10 @@ use config::builder::DefaultState;
 use config::{Config, ConfigBuilder, Environment, File, FileFormat};
 use serde::de::DeserializeOwned;
 
+pub use common_types::Validate;
+
 pub const DEFAULT_DIR: &str = "config";
 pub const DEFAULT_PROFILE: &str = "local";
-
-pub trait Validate {
-    fn validate(&self) -> Result<()>;
-}
 
 #[derive(Debug, Default)]
 pub struct ConfigLoader {

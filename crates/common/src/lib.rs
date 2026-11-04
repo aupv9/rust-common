@@ -9,3 +9,9 @@ pub use common_telemetry as telemetry;
 
 #[cfg(feature = "types")]
 pub use common_types as types;
+
+#[cfg(feature = "lifecycle")]
+pub use common_lifecycle as lifecycle;
+
+#[cfg(feature = "axum")]
+pub use common_axum as axum;

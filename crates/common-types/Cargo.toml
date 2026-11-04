@@ -9,9 +9,10 @@ publish.workspace = true
 
 [features]
 default = []
-sqlx = ["dep:sqlx", "sqlx/postgres", "sqlx/uuid"]
+sqlx = ["dep:sqlx", "sqlx/postgres", "sqlx/uuid", "sqlx/chrono"]
 
 [dependencies]
+chrono.workspace = true
 common-error.workspace = true
 serde.workspace = true
 sqlx = { workspace = true, optional = true }

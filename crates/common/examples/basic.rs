@@ -1,5 +1,5 @@
 use common::config::{ConfigLoader, Validate};
-use common::telemetry::{self, TelemetryConfig, tracing};
+use common::telemetry::{self, ServiceInfo, TelemetryConfig, tracing};
 use common::types::{Id, NonEmptyString, Secret};
 use common::{Error, OptionExt};
 
@@ -40,7 +40,7 @@ fn main() -> common::Result<()> {
         .with_env_profile("APP")
         .load_validated()?;
 
-    telemetry::init(&cfg.telemetry)?;
+    let _guard = telemetry::init(&ServiceInfo::new("basic", "0.0.0"), &cfg.telemetry)?;
     tracing::info!(app = %cfg.name, ?cfg.api_key, "started");
 
     if let Err(err) = find_user(Id::new()) {

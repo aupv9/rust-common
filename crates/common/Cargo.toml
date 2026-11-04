@@ -9,25 +9,35 @@ publish.workspace = true
 
 [features]
 default = []
-full = ["config", "telemetry", "types", "serde_json", "sqlx"]
+full = ["config", "telemetry", "types", "lifecycle", "axum", "otel", "serde_json", "sqlx"]
 config = ["dep:common-config"]
 telemetry = ["dep:common-telemetry"]
 types = ["dep:common-types"]
+lifecycle = ["dep:common-lifecycle"]
+axum = ["dep:common-axum", "lifecycle", "types"]
+otel = ["telemetry", "common-telemetry/otel", "common-axum?/otel"]
 serde_json = ["common-error/serde_json"]
 sqlx = ["common-error/sqlx", "common-types?/sqlx"]
 
 [dependencies]
 common-error.workspace = true
+common-axum = { workspace = true, optional = true }
 common-config = { workspace = true, optional = true }
+common-lifecycle = { workspace = true, optional = true }
 common-telemetry = { workspace = true, optional = true }
 common-types = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 
 [[example]]
 name = "basic"
 required-features = ["config", "telemetry", "types"]
+
+[[example]]
+name = "service"
+required-features = ["config", "telemetry", "axum"]
 
 [lints]
 workspace = true

@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 common-error.workspace = true
+common-types.workspace = true
 config.workspace = true
 serde.workspace = true
 
