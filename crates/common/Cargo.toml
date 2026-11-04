@@ -9,23 +9,25 @@ publish.workspace = true
 
 [features]
 default = []
-full = ["config", "telemetry", "utils"]
+full = ["config", "telemetry", "types", "serde_json", "sqlx"]
 config = ["dep:common-config"]
 telemetry = ["dep:common-telemetry"]
-utils = ["dep:common-utils"]
+types = ["dep:common-types"]
+serde_json = ["common-error/serde_json"]
+sqlx = ["common-error/sqlx", "common-types?/sqlx"]
 
 [dependencies]
 common-error.workspace = true
 common-config = { workspace = true, optional = true }
 common-telemetry = { workspace = true, optional = true }
-common-utils = { workspace = true, optional = true }
+common-types = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde.workspace = true
 
 [[example]]
 name = "basic"
-required-features = ["full"]
+required-features = ["config", "telemetry", "types"]
 
 [lints]
 workspace = true

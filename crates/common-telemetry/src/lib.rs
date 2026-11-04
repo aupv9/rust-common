@@ -1,33 +1,22 @@
-//! Tracing/logging initialisation.
-//!
-//! `RUST_LOG`, when set, takes precedence over [`TelemetryConfig::level`].
-
 use common_error::{Error, ErrorKind, Result};
 use serde::Deserialize;
 use tracing_subscriber::EnvFilter;
 
 pub use tracing;
 
-/// Log output format.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LogFormat {
-    /// Multi-line, human friendly (local development).
     Pretty,
-    /// Single-line, human friendly.
     #[default]
     Compact,
-    /// Structured JSON (production / log shipping).
     Json,
 }
 
-/// Telemetry settings; can be embedded in an app config.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct TelemetryConfig {
-    /// Default filter directive, e.g. `info` or `my_app=debug,info`.
     pub level: String,
-    /// Output format.
     pub format: LogFormat,
 }
 
@@ -40,12 +29,6 @@ impl Default for TelemetryConfig {
     }
 }
 
-/// Installs the global tracing subscriber.
-///
-/// # Errors
-///
-/// Returns an error if the filter directive is invalid or a global
-/// subscriber has already been installed.
 pub fn init(cfg: &TelemetryConfig) -> Result<()> {
     let filter = match EnvFilter::try_from_default_env() {
         Ok(f) => f,
