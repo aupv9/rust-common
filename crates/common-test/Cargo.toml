@@ -1,0 +1,32 @@
+[package]
+name = "common-test"
+description = "Test helpers: tracing, Postgres via testcontainers, in-process HTTP client for axum routers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["http", "postgres"]
+http = ["dep:axum", "dep:bytes", "dep:http-body-util", "dep:serde_json", "dep:tower"]
+postgres = ["dep:sqlx", "dep:testcontainers-modules"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+bytes = { workspace = true, optional = true }
+common-error.workspace = true
+http-body-util = { workspace = true, optional = true }
+serde.workspace = true
+serde_json = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true, features = ["postgres", "runtime-tokio"] }
+testcontainers-modules = { workspace = true, optional = true, features = ["postgres"] }
+tower = { workspace = true, optional = true, features = ["util"] }
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+axum = { workspace = true, features = ["json"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

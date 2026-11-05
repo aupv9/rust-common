@@ -9,10 +9,12 @@ publish.workspace = true
 
 [features]
 default = []
+reqwest = ["dep:reqwest"]
 serde_json = ["dep:serde_json"]
 sqlx = ["dep:sqlx"]
 
 [dependencies]
+reqwest = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 sqlx = { workspace = true, optional = true }
 thiserror.workspace = true

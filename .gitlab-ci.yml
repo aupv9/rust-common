@@ -49,3 +49,14 @@ test:
   stage: test
   script:
     - cargo test --workspace --all-features
+
+integration:
+  stage: test
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - cargo test --workspace --all-features -- --ignored

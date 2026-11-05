@@ -1,3 +1,5 @@
+#[cfg(feature = "reqwest")]
+mod reqwest;
 #[cfg(feature = "serde_json")]
 mod serde_json;
 #[cfg(feature = "sqlx")]

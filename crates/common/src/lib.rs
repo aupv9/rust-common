@@ -15,3 +15,12 @@ pub use common_lifecycle as lifecycle;
 
 #[cfg(feature = "axum")]
 pub use common_axum as axum;
+
+#[cfg(feature = "resilience")]
+pub use common_resilience as resilience;
+
+#[cfg(feature = "db")]
+pub use common_db as db;
+
+#[cfg(feature = "http-client")]
+pub use common_http_client as http_client;
