@@ -1,252 +1,201 @@
+<div align="center">
+
 # rust-common
 
-Bộ thư viện dùng chung cho các backend service Rust (axum + Postgres/sqlx), tổ chức dạng Cargo workspace.
+**Production-ready building blocks for Rust backend services built on axum, Postgres and OpenTelemetry.**
 
-MSRV: **1.94**
+[![CI](https://github.com/aupv9/rust-common/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aupv9/rust-common/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+[![MSRV 1.94](https://img.shields.io/badge/MSRV-1.94-orange.svg)](https://blog.rust-lang.org/)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
-## Kiến trúc
+[Features](#features) ·
+[Quick start](#quick-start) ·
+[Crates](#crates) ·
+[Feature flags](#feature-flags) ·
+[Architecture](docs/architecture.md) ·
+[Contributing](CONTRIBUTING.md)
 
-Các crate chia theo tầng, phụ thuộc chỉ đi từ trên xuống. Tier 0 không dùng tokio.
+</div>
 
-```
-Tier 3  Testing     common-test (dev-dependency)
-Tier 2  Adapters    common-axum
-Tier 1  Infra       common-db   common-http-client ── common-resilience   common-lifecycle   common-telemetry
-Tier 0  Foundation  common-config ── common-types ── common-error
-        Facade      common  (re-export, bật/tắt bằng feature)
-```
+---
 
-| Crate | Nội dung |
-|---|---|
-| `common-error` | `Error` (kind + code + message + source), `ResultExt::context`, `OptionExt::or_not_found`, `From` cho `io` / `serde_json` / `sqlx` |
-| `common-types` | `Id<T>` (UUID v7 có kiểu), `Timestamp` (chrono, độ chính xác micro giây khớp Postgres), `Secret<T>`, `NonEmptyString`, `PageRequest`/`Page<T>`, `CursorRequest`/`CursorPage<T>`, trait `Validate` |
-| `common-config` | `ConfigLoader`: `config/default.toml` → `config/{APP_ENV}.toml` → env `APP__*` |
-| `common-telemetry` | tracing (pretty / compact / json); feature `otel`: export trace + metric qua OTLP gRPC, W3C trace context |
-| `common-lifecycle` | `Lifecycle`: tắt êm khi nhận SIGINT/SIGTERM, task nền có giám sát, `HealthRegistry` |
-| `common-axum` | `ApiError` → `application/problem+json`, extractor `Json`/`Query`/`Path`/`ValidatedJson`, middleware chuẩn, `/health/*`, `serve()` |
-| `common-resilience` | `retry`/`retry_if` (exponential backoff + jitter), `CircuitBreaker` |
-| `common-db` | `DbConfig`, `connect`/`connect_lazy`, `ping`, `health_check`, `migrate`, `transaction` (sqlx Postgres, rustls) |
-| `common-http-client` | `HttpClient` (reqwest): timeout, retry cho method idempotent, circuit breaker, span client, đọc lỗi problem+json từ upstream |
-| `common-test` | `init_tracing`, `TestPostgres` (testcontainers), `TestApp`/`TestResponse` gọi router axum không cần mở cổng |
+`rust-common` is a Cargo workspace of small, focused crates that cover the code every HTTP service ends up writing: error handling, configuration, structured logging and tracing, graceful shutdown, health checks, an opinionated axum stack, a Postgres pool, a resilient HTTP client, and test helpers.
 
-## Features của crate `common`
+You can depend on the individual `common-*` crates, or on the `common` facade and turn on only the parts you need with feature flags.
 
-| Feature | Bật |
-|---|---|
-| *(luôn có)* | `common::error`, `Error`, `ErrorKind`, `Result`, `ResultExt`, `OptionExt` |
-| `config` | `common::config` |
-| `telemetry` | `common::telemetry` |
-| `types` | `common::types` |
-| `lifecycle` | `common::lifecycle` |
-| `axum` | `common::axum` (kéo theo `lifecycle`, `types`) |
-| `resilience` | `common::resilience` |
-| `db` | `common::db` (kéo theo `types`, `sqlx`) |
-| `http-client` | `common::http_client` (kéo theo `resilience`, `reqwest`) |
-| `otel` | OpenTelemetry trong `telemetry`; lan truyền trace context trong `axum` (nhận) và `http-client` (gửi) |
-| `reqwest` | `From<reqwest::Error> for Error` |
-| `serde_json` | `From<serde_json::Error> for Error` |
-| `sqlx` | `From<sqlx::Error> for Error`; `Id<T>`, `NonEmptyString` encode/decode Postgres; chrono cho sqlx |
-| `full` | tất cả |
+## Features
 
-## Dựng một service
+- **One error type end to end.** `common::Error` carries a kind, a stable machine-readable code, a message and a source. It maps to HTTP status codes and to [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) `application/problem+json` responses, and is built from `sqlx`, `reqwest`, `serde_json` and `io` errors.
+- **An axum stack with defaults.** Request IDs, tracing spans, panic recovery, timeouts, gzip, CORS, body limits, `/health/live` and `/health/ready`, and problem+json for every error, including 404, 405 and extractor rejections.
+- **Graceful lifecycle.** Shuts down on SIGINT/SIGTERM, supervises background tasks (a failing or panicking task stops the service), and reports a draining state so load balancers stop sending traffic first.
+- **Observability.** `tracing` output in pretty, compact or JSON format. Behind the `otel` feature: OTLP gRPC export of traces and metrics, and W3C trace-context propagation on incoming and outgoing requests.
+- **Postgres via sqlx.** Pool setup, statement timeouts, health checks, migrations, and a `transaction` helper that commits on `Ok` and rolls back on `Err`.
+- **Resilient outbound HTTP.** Timeouts, retries with exponential backoff and jitter (idempotent methods only), a circuit breaker per client, and problem+json errors from upstream services passed through with their code intact.
+- **Typed domain primitives.** `Id<T>` (UUID v7), `Secret<T>`, `NonEmptyString`, offset and cursor pagination, and microsecond `Timestamp`s that round-trip through Postgres.
+- **Test helpers.** Throwaway Postgres via testcontainers and in-process axum requests with problem+json assertions.
+- **Safe and lean.** `unsafe_code` forbidden across the workspace, clippy pedantic, `cargo-deny` checks, every feature combination checked in CI, and a rustls-only TLS stack with aws-lc-rs.
+
+## Quick start
+
+Add the facade with the features you need:
 
 ```toml
 [dependencies]
-common = { git = "<repo-url>", tag = "v0.3.0", features = ["config", "telemetry", "axum", "otel", "sqlx"] }
+common = { git = "https://github.com/aupv9/rust-common", branch = "main", features = ["config", "telemetry", "axum"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
+> [!NOTE]
+> The crates are not yet published to crates.io. Pin a `rev` (or a `tag`, once releases are cut) for reproducible builds.
+
+Write a service:
+
 ```rust
+use common::axum::axum::{Router, routing::get};
+use common::axum::{ApiResult, Json, Path, ServerConfig};
+use common::config::ConfigLoader;
+use common::lifecycle::{Lifecycle, LifecycleConfig};
+use common::telemetry::{self, ServiceInfo, TelemetryConfig};
+use common::types::{Id, NonEmptyString};
+use common::OptionExt;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct AppConfig {
+    server: ServerConfig,
+    telemetry: TelemetryConfig,
+    lifecycle: LifecycleConfig,
+}
+
+#[derive(Clone, Serialize)]
+struct User {
+    id: Id<User>,
+    name: NonEmptyString,
+}
+
+async fn find_user(_id: Id<User>) -> common::Result<Option<User>> {
+    Ok(None)
+}
+
+async fn get_user(Path(id): Path<Id<User>>) -> ApiResult<Json<User>> {
+    let user = find_user(id).await?.or_not_found(format!("user {id}"))?;
+    Ok(Json(user))
+}
+
 #[tokio::main]
 async fn main() -> common::Result<()> {
-    let cfg: AppConfig = ConfigLoader::from_env("APP").load_validated()?;
+    let cfg: AppConfig = ConfigLoader::from_env("APP").load()?;
     let _telemetry = telemetry::init(
         &ServiceInfo::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
         &cfg.telemetry,
     )?;
 
     let lifecycle = Lifecycle::new(&cfg.lifecycle);
-    lifecycle.health().register("db", move || { /* select 1 */ });
-    lifecycle.spawn("outbox", |token| async move { /* loop until token.cancelled() */ Ok(()) });
+    let router = Router::new().route("/users/{id}", get(get_user));
 
-    common::axum::serve(routes(), &cfg.server, lifecycle).await
-}
-
-async fn get_user(Path(id): Path<Id<User>>) -> ApiResult<Json<User>> {
-    let user = repo.find(id).await?.or_not_found(format!("user {id}"))?;
-    Ok(Json(user))
+    common::axum::serve(router, &cfg.server, lifecycle).await
 }
 ```
 
-Ví dụ chạy được: `cargo run -p common --example service --features full`
+A missing user returns:
 
-### Config mẫu
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+x-request-id: 0192f6a8-...
 
-```toml
-[server]
-host = "0.0.0.0"
-port = 8080
-request_timeout_secs = 30
-body_limit_bytes = 2097152
-cors.allowed_origins = ["https://app.example.com"]
-
-[lifecycle]
-shutdown_timeout_secs = 30
-
-[telemetry]
-level = "info,sqlx=warn"
-format = "json"
-
-[telemetry.otlp]
-endpoint = "http://otel-collector:4317"
-sample_ratio = 0.1
-metrics = true
+{"type":"about:blank","title":"Not Found","status":404,"detail":"user 0192f6a8-...","code":"NOT_FOUND"}
 ```
 
-`RUST_LOG`, nếu được đặt, ghi đè `telemetry.level`. Không có mục `[telemetry.otlp]` thì không export.
-
-### Middleware của `common-axum` (ngoài vào trong)
-
-1. `x-request-id`: tạo UUID v7 nếu client không gửi, trả lại trong response
-2. Trace span `http.request` (method, route, status, request_id); với `otel` thì nối vào trace cha từ header `traceparent`
-3. Bắt panic → 500 problem+json
-4. Timeout → 504 problem+json
-5. Nén gzip
-6. CORS (chỉ bật khi `cors.allowed_origins` khác rỗng; `["*"]` cho phép mọi origin)
-7. Giới hạn kích thước body
-
-Route không tồn tại trả 404, method sai trả 405, đều ở dạng problem+json. `/health/live` và `/health/ready` nằm ngoài middleware để probe không làm nhiễu log. Lưu ý: `with_defaults` đặt lại `fallback` của router.
-
-### Mapping lỗi → HTTP
-
-| ErrorKind | Status |
-|---|---|
-| `NotFound` | 404 |
-| `InvalidInput` | 400 |
-| `Unauthorized` / `Forbidden` | 401 / 403 |
-| `Conflict` | 409 |
-| `RateLimited` | 429 |
-| `Timeout` | 504 |
-| `Unavailable` | 503 |
-| `Internal`, `Config` | 500 (`detail` bị ẩn, lỗi gốc được log) |
-
-```json
-{"type":"about:blank","title":"Not Found","status":404,"detail":"user 42","code":"USER_NOT_FOUND"}
-```
-
-Lỗi từ extractor giữ status gốc của axum (415 thiếu content-type, 422 sai kiểu dữ liệu, ...).
-
-### Mapping lỗi sqlx
-
-| sqlx | ErrorKind |
-|---|---|
-| `RowNotFound` | `NotFound` |
-| unique / foreign key violation | `Conflict` |
-| not-null / check violation | `InvalidInput` |
-| `PoolTimedOut` | `Timeout` |
-| `PoolClosed`, I/O, TLS | `Unavailable` |
-| khác | `Internal` |
-
-### Database
-
-```toml
-[db]
-url = "postgres://app:secret@db:5432/app"
-max_connections = 20
-statement_timeout_ms = 5000
-application_name = "user-service"
-```
-
-```rust
-static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
-
-let pool = common::db::connect(&cfg.db).await?;
-common::db::migrate(&pool, &MIGRATOR).await?;
-lifecycle.health().register("db", common::db::health_check(pool.clone()));
-
-let user_id = common::db::transaction(&pool, |tx| Box::pin(async move {
-    let id = Id::<User>::new();
-    sqlx::query("INSERT INTO users (id, name) VALUES ($1, $2)").bind(id).bind(&name).execute(&mut *tx).await?;
-    sqlx::query("INSERT INTO audit (user_id) VALUES ($1)").bind(id).execute(&mut *tx).await?;
-    Ok(id)
-})).await?;
-```
-
-`transaction` commit khi closure trả `Ok`, rollback khi trả `Err`. `Id<T>`, `NonEmptyString`, `Timestamp` bind/decode trực tiếp với sqlx.
-
-### HTTP client
-
-```toml
-[clients.payments]
-timeout_secs = 10
-retry = { max_attempts = 3, initial_delay_ms = 100 }
-circuit_breaker = { failure_threshold = 5, open_secs = 30 }
-```
-
-```rust
-let payments = HttpClient::new("payments", &cfg.clients.payments)?;
-let invoice: Invoice = payments.send_json(payments.get(format!("{base}/invoices/{id}"))).await?;
-```
-
-- Chỉ retry method idempotent (GET, HEAD, PUT, DELETE, OPTIONS, TRACE) và chỉ khi lỗi là `Timeout`/`Unavailable`/`RateLimited` (429, 502, 503, 504, lỗi kết nối).
-- Circuit breaker chỉ đếm lỗi hạ tầng; lỗi nghiệp vụ (404, 409, ...) không làm mở mạch.
-- `send` trả `Err` cho mọi status không phải 2xx/3xx. Nếu upstream trả problem+json thì `code` và `detail` được giữ nguyên, nên lỗi `USER_NOT_FOUND` từ service khác đi xuyên qua service hiện tại.
-- Query string và thông tin đăng nhập trong URL bị loại khỏi log/span.
-- Với `otel`, header `traceparent` được tự động gắn vào request.
-
-### Lifecycle
-
-- Task được `spawn` nhận một `CancellationToken` và phải tự dừng khi token bị huỷ.
-- Task trả `Err` hoặc panic thì cả app bắt đầu tắt, và `run()` trả về lỗi đó.
-- Khi đang tắt, `/health/ready` trả 503 với `status: "draining"` để load balancer ngừng gửi traffic.
-- Quá `shutdown_timeout_secs` mà task chưa dừng thì `run()` trả lỗi `Timeout`.
-
-## Test
-
-```toml
-[dev-dependencies]
-common-test = { git = "<repo-url>", tag = "v0.3.0" }
-```
-
-```rust
-#[tokio::test]
-#[ignore = "requires docker"]
-async fn creates_user() {
-    common_test::init_tracing();
-    let pg = TestPostgres::start().await.unwrap();
-    let app = TestApp::new(build_router(pg.pool().clone()));
-
-    app.post_json("/users", &json!({ "name": "" })).await
-        .assert_problem(StatusCode::BAD_REQUEST, "INVALID_INPUT");
-}
-```
-
-Test cần Docker được đánh dấu `#[ignore]`. Chạy với `--include-ignored`. Nếu dùng colima:
+A complete example with state, validation, pagination, a background task and a health check is in [`crates/common/examples/service.rs`](crates/common/examples/service.rs):
 
 ```sh
-export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
-export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
-cargo test --workspace --all-features -- --include-ignored
+cargo run -p common --example service --features full
+curl -s localhost:8080/health/ready
 ```
 
-Trên GitLab CI, job `integration` chạy các test này với service `docker:dind` (runner cần chế độ privileged).
+## Crates
 
-## Phát triển
+| Crate | Description |
+|---|---|
+| [`common`](crates/common) | Facade that re-exports every crate below behind feature flags |
+| [`common-error`](crates/common-error) | `Error`, `ErrorKind`, `ResultExt`, `OptionExt`; conversions from `io`, `serde_json`, `sqlx`, `reqwest` |
+| [`common-types`](crates/common-types) | `Id<T>`, `Timestamp`, `Secret<T>`, `NonEmptyString`, offset and cursor pagination, `Validate` |
+| [`common-config`](crates/common-config) | Layered config: `config/default.toml` → `config/{APP_ENV}.toml` → `APP__*` environment variables |
+| [`common-telemetry`](crates/common-telemetry) | `tracing` setup; optional OTLP traces and metrics and W3C propagation |
+| [`common-lifecycle`](crates/common-lifecycle) | Graceful shutdown, supervised background tasks, `HealthRegistry` |
+| [`common-axum`](crates/common-axum) | problem+json errors, extractors, middleware stack, health routes, `serve()` |
+| [`common-resilience`](crates/common-resilience) | `retry` / `retry_if` with backoff and jitter, `CircuitBreaker` |
+| [`common-db`](crates/common-db) | Postgres pool, `health_check`, `migrate`, `transaction` |
+| [`common-http-client`](crates/common-http-client) | `reqwest` client with timeouts, retries, circuit breaker, tracing, upstream error mapping |
+| [`common-test`](crates/common-test) | `init_tracing`, `TestPostgres`, `TestApp` / `TestResponse` |
 
-```sh
-cargo fmt --all
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo deny check
-cargo hack check --workspace --each-feature --no-dev-deps
-```
+Each crate's README covers its configuration and behavior in detail. The layering rules are described in [docs/architecture.md](docs/architecture.md).
 
-Lần build đầu khá lâu vì `aws-lc-sys` (rustls provider dùng chung cho reqwest và sqlx) phải biên dịch mã C.
+## Feature flags
 
-Quy ước: không viết comment trong code; giải thích đặt ở README.
+The `common` facade enables nothing beyond the error types by default.
 
-## Thêm crate mới
+| Feature | Enables |
+|---|---|
+| *(always)* | `common::error`, `Error`, `ErrorKind`, `Result`, `ResultExt`, `OptionExt` |
+| `config` | `common::config` |
+| `telemetry` | `common::telemetry` |
+| `types` | `common::types` |
+| `lifecycle` | `common::lifecycle` |
+| `axum` | `common::axum` (implies `lifecycle`, `types`) |
+| `resilience` | `common::resilience` |
+| `db` | `common::db` (implies `types`, `sqlx`) |
+| `http-client` | `common::http_client` (implies `resilience`, `reqwest`) |
+| `otel` | OpenTelemetry export in `telemetry`; trace-context extraction in `axum` and injection in `http-client` |
+| `sqlx` | `From<sqlx::Error>`; Postgres `Encode`/`Decode` for `Id<T>` and `NonEmptyString` |
+| `reqwest` | `From<reqwest::Error>` |
+| `serde_json` | `From<serde_json::Error>` |
+| `full` | Everything above |
 
-1. `cargo new --lib crates/common-<tên>`
-2. `Cargo.toml`: `version.workspace = true`, ... và `[lints] workspace = true`
-3. Thêm vào `[workspace.dependencies]` ở root
-4. Thêm feature + `pub use` trong `crates/common`
+## Error model
+
+| `ErrorKind` | HTTP status | Retryable |
+|---|---|---|
+| `NotFound` | 404 | |
+| `InvalidInput` | 400 | |
+| `Unauthorized` / `Forbidden` | 401 / 403 | |
+| `Conflict` | 409 | |
+| `RateLimited` | 429 | ✓ |
+| `Timeout` | 504 | ✓ |
+| `Unavailable` | 503 | ✓ |
+| `Internal`, `Config` | 500 (detail hidden, source logged) | |
+
+The full mapping, including how `sqlx` errors become kinds, is in [`common-error`](crates/common-error) and [`common-axum`](crates/common-axum).
+
+## Minimum supported Rust version
+
+The MSRV is **1.94** (edition 2024), required by sqlx 0.9. CI checks it on every change. Raising the MSRV is not treated as a breaking change, but it is always noted in the [changelog](CHANGELOG.md).
+
+## Roadmap
+
+- [x] Foundation: errors, types, configuration
+- [x] Service kit: lifecycle, axum, telemetry, OpenTelemetry
+- [x] Data and integration: Postgres, HTTP client, resilience, test helpers
+- [ ] HTTP server metrics
+- [ ] On demand: authentication, caching, messaging, gRPC
+
+Ideas and requests are welcome in [issues](https://github.com/aupv9/rust-common/issues).
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup and conventions, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues as described in [SECURITY.md](SECURITY.md), not in public issues.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <https://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/licenses/MIT>)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
