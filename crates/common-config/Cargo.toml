@@ -1,6 +1,6 @@
 [package]
 name = "common-config"
-description = "Layered configuration loading (files + environment)."
+description = "Layered configuration loading with profiles and validation."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,8 +9,12 @@ publish.workspace = true
 
 [dependencies]
 common-error.workspace = true
+common-types.workspace = true
 config.workspace = true
 serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

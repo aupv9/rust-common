@@ -1,17 +1,35 @@
 [package]
 name = "common-telemetry"
-description = "Tracing/logging initialisation."
+description = "Tracing/logging initialisation with optional OpenTelemetry export."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+default = []
+otel = [
+    "dep:http",
+    "dep:opentelemetry",
+    "dep:opentelemetry-otlp",
+    "dep:opentelemetry_sdk",
+    "dep:tracing-opentelemetry",
+]
+
 [dependencies]
 common-error.workspace = true
+http = { workspace = true, optional = true }
+opentelemetry = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
 serde.workspace = true
 tracing.workspace = true
+tracing-opentelemetry = { workspace = true, optional = true, features = ["metrics"] }
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
 
 [lints]
 workspace = true

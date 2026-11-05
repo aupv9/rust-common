@@ -2,11 +2,13 @@ image: rust:latest
 
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  CARGO_TERM_COLOR: always
 
 cache:
   key: $CI_COMMIT_REF_SLUG
   paths:
     - .cargo/registry
+    - .cargo/bin
     - target/
 
 stages:
@@ -25,7 +27,36 @@ clippy:
     - rustup component add clippy
     - cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+deny:
+  stage: check
+  script:
+    - cargo install cargo-deny --locked
+    - cargo deny check
+
+features:
+  stage: check
+  script:
+    - cargo install cargo-hack --locked
+    - cargo hack check --workspace --each-feature --no-dev-deps
+
+msrv:
+  stage: check
+  image: rust:1.94
+  script:
+    - cargo check --workspace --all-features
+
 test:
   stage: test
   script:
     - cargo test --workspace --all-features
+
+integration:
+  stage: test
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - cargo test --workspace --all-features -- --ignored
