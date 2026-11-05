@@ -42,6 +42,8 @@ features:
 msrv:
   stage: check
   image: rust:1.94
+  variables:
+    RUSTUP_TOOLCHAIN: "1.94"
   script:
     - cargo check --workspace --all-features
 

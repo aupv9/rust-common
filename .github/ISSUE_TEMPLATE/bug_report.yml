@@ -1,0 +1,62 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: dropdown
+    id: crate
+    attributes:
+      label: Crate
+      multiple: true
+      options:
+        - common
+        - common-error
+        - common-types
+        - common-config
+        - common-telemetry
+        - common-lifecycle
+        - common-axum
+        - common-resilience
+        - common-db
+        - common-http-client
+        - common-test
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you expected to happen, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code, config or commands that reproduce the problem.
+      render: rust
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      render: text
+  - type: input
+    id: revision
+    attributes:
+      label: rust-common revision
+      placeholder: "e.g. 8325f6a or v0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: rustc
+    attributes:
+      label: rustc version
+      placeholder: output of `rustc --version`
+    validations:
+      required: true
+  - type: input
+    id: features
+    attributes:
+      label: Enabled features
+      placeholder: "e.g. axum, db, otel"
