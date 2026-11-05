@@ -1,4 +1,4 @@
-    use common_error::{Error, ErrorKind, Result};
+use common_error::{Error, ErrorKind, Result};
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::{MetricExporter, SpanExporter, WithExportConfig};
