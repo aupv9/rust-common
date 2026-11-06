@@ -7,6 +7,7 @@ Tier 3  Testing      common-test                 (dev-dependency only)
 Tier 2  Adapters     common-axum
 Tier 1  Infra        common-db   common-http-client ─▶ common-resilience
                      common-lifecycle   common-telemetry
+                     common-auth ─▶ common-http-client (jwks feature)
 Tier 0  Foundation   common-config ─▶ common-types ─▶ common-error
 
         Facade       common  (re-exports, gated by features)
@@ -26,10 +27,12 @@ Tier 0  Foundation   common-config ─▶ common-types ─▶ common-error
 
 **One TLS stack.** reqwest and sqlx both use rustls with the aws-lc-rs provider, so only one crypto library is compiled and linked.
 
+**Auth is framework-agnostic.** `common-auth` knows nothing about axum: it turns a credential into a `Principal` and checks requirements and policies. The axum glue (`with_auth`, `Auth`, `require`) lives in `common-axum` behind the `auth` feature, so the dependency still points down a tier.
+
 ## Request flow
 
 ```
-client ──▶ x-request-id ──▶ trace span ──▶ panic catch ──▶ timeout ──▶ gzip ──▶ CORS ──▶ body limit ──▶ handler
+client ──▶ x-request-id ──▶ trace span ──▶ panic catch ──▶ timeout ──▶ gzip ──▶ CORS ──▶ body limit ──▶ [auth] ──▶ handler
                                 │                                                                          │
                      traceparent (otel)                                                     common_error::Error
                                                                                                           │

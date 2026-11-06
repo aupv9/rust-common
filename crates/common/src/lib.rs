@@ -24,3 +24,6 @@ pub use common_db as db;
 
 #[cfg(feature = "http-client")]
 pub use common_http_client as http_client;
+
+#[cfg(feature = "auth")]
+pub use common_auth as auth;

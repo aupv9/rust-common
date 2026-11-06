@@ -18,6 +18,7 @@ common = { git = "https://github.com/aupv9/rust-common", branch = "main", featur
 | `common::resilience` | [`common-resilience`](../common-resilience) | `resilience` |
 | `common::db` | [`common-db`](../common-db) | `db` |
 | `common::http_client` | [`common-http-client`](../common-http-client) | `http-client` |
+| `common::auth` | [`common-auth`](../common-auth) | `auth` (+ `auth-jwks`, `auth-issuer`, `auth-password`) |
 
 Cross-cutting features: `otel`, `sqlx`, `reqwest`, `serde_json`, and `full` for everything. See the [feature table](../../README.md#feature-flags) in the root README.
 

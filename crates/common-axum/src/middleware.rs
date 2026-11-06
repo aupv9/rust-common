@@ -81,6 +81,7 @@ fn make_span(req: &Request<Body>) -> Span {
         http.route = route,
         url.path = req.uri().path(),
         http.response.status_code = tracing::field::Empty,
+        enduser.id = tracing::field::Empty,
         request_id,
     );
 

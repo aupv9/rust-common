@@ -30,6 +30,7 @@ You can depend on the individual `common-*` crates, or on the `common` facade an
 - **An axum stack with defaults.** Request IDs, tracing spans, panic recovery, timeouts, gzip, CORS, body limits, `/health/live` and `/health/ready`, and problem+json for every error, including 404, 405 and extractor rejections.
 - **Graceful lifecycle.** Shuts down on SIGINT/SIGTERM, supervises background tasks (a failing or panicking task stops the service), and reports a draining state so load balancers stop sending traffic first.
 - **Observability.** `tracing` output in pretty, compact or JSON format. Behind the `otel` feature: OTLP gRPC export of traces and metrics, and W3C trace-context propagation on incoming and outgoing requests.
+- **Authentication and authorization.** JWT verification against an IdP's JWKS (cached, rotation-aware, outage-tolerant) or static keys, JWT issuing, hashed API keys, Argon2id passwords, and a `Principal` with roles, scopes and an optional tenant. Role/scope checks as axum layers, resource policies in handlers.
 - **Postgres via sqlx.** Pool setup, statement timeouts, health checks, migrations, and a `transaction` helper that commits on `Ok` and rolls back on `Err`.
 - **Resilient outbound HTTP.** Timeouts, retries with exponential backoff and jitter (idempotent methods only), a circuit breaker per client, and problem+json errors from upstream services passed through with their code intact.
 - **Typed domain primitives.** `Id<T>` (UUID v7), `Secret<T>`, `NonEmptyString`, offset and cursor pagination, and microsecond `Timestamp`s that round-trip through Postgres.
@@ -131,6 +132,7 @@ curl -s localhost:8080/health/ready
 | [`common-resilience`](crates/common-resilience) | `retry` / `retry_if` with backoff and jitter, `CircuitBreaker` |
 | [`common-db`](crates/common-db) | Postgres pool, `health_check`, `migrate`, `transaction` |
 | [`common-http-client`](crates/common-http-client) | `reqwest` client with timeouts, retries, circuit breaker, tracing, upstream error mapping |
+| [`common-auth`](crates/common-auth) | JWT verification (JWKS or static keys), JWT issuing, API keys, password hashing, `Principal`, RBAC/scope and resource policies |
 | [`common-test`](crates/common-test) | `init_tracing`, `TestPostgres`, `TestApp` / `TestResponse` |
 
 Each crate's README covers its configuration and behavior in detail. The layering rules are described in [docs/architecture.md](docs/architecture.md).
@@ -150,6 +152,10 @@ The `common` facade enables nothing beyond the error types by default.
 | `resilience` | `common::resilience` |
 | `db` | `common::db` (implies `types`, `sqlx`) |
 | `http-client` | `common::http_client` (implies `resilience`, `reqwest`) |
+| `auth` | `common::auth` with static-key JWT and API keys; `with_auth`/`Auth`/`require` in `axum` (implies `types`) |
+| `auth-jwks` | JWKS key source (implies `auth`, `http-client`) |
+| `auth-issuer` | `JwtIssuer` (implies `auth`) |
+| `auth-password` | Argon2id password hashing (implies `auth`) |
 | `otel` | OpenTelemetry export in `telemetry`; trace-context extraction in `axum` and injection in `http-client` |
 | `sqlx` | `From<sqlx::Error>`; Postgres `Encode`/`Decode` for `Id<T>` and `NonEmptyString` |
 | `reqwest` | `From<reqwest::Error>` |
@@ -180,8 +186,9 @@ The MSRV is **1.94** (edition 2024), required by sqlx 0.9. CI checks it on every
 - [x] Foundation: errors, types, configuration
 - [x] Service kit: lifecycle, axum, telemetry, OpenTelemetry
 - [x] Data and integration: Postgres, HTTP client, resilience, test helpers
+- [x] Authentication and authorization
 - [ ] HTTP server metrics
-- [ ] On demand: authentication, caching, messaging, gRPC
+- [ ] On demand: caching, messaging, gRPC
 
 Ideas and requests are welcome in [issues](https://github.com/aupv9/rust-common/issues).
 

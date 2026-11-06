@@ -21,8 +21,12 @@ common-resilience = { path = "crates/common-resilience", version = "0.1.0" }
 common-db = { path = "crates/common-db", version = "0.1.0" }
 common-http-client = { path = "crates/common-http-client", version = "0.1.0" }
 common-test = { path = "crates/common-test", version = "0.1.0" }
+common-auth = { path = "crates/common-auth", version = "0.1.0", default-features = false }
 
+argon2 = { version = "0.6", default-features = false, features = ["alloc", "getrandom", "password-hash"] }
+aws-lc-rs = "1"
 axum = { version = "0.8", default-features = false }
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 bytes = "1"
 config = { version = "0.15", default-features = false, features = ["toml"] }
@@ -30,6 +34,7 @@ fastrand = "2"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 http = "1"
 http-body-util = "0.1"
+jsonwebtoken = { version = "11", default-features = false, features = ["use_pem"] }
 opentelemetry = { version = "0.33", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.33", default-features = false, features = ["grpc-tonic", "trace", "metrics"] }
 opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace", "metrics"] }
