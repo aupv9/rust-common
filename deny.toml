@@ -4,6 +4,9 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
+ignore = [
+    { id = "RUSTSEC-2026-0440", reason = "astral-tokio-tar is unmaintained, not vulnerable. It is pulled in only by testcontainers in common-test (test helper, never in production builds). No testcontainers release drops it yet; remove this entry once one does." },
+]
 
 [licenses]
 version = 2
