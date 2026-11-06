@@ -20,6 +20,10 @@ full = [
     "resilience",
     "db",
     "http-client",
+    "auth",
+    "auth-jwks",
+    "auth-issuer",
+    "auth-password",
     "otel",
     "reqwest",
     "serde_json",
@@ -33,6 +37,10 @@ axum = ["dep:common-axum", "lifecycle", "types"]
 resilience = ["dep:common-resilience"]
 db = ["dep:common-db", "types", "sqlx"]
 http-client = ["dep:common-http-client", "resilience", "reqwest"]
+auth = ["dep:common-auth", "types", "common-axum?/auth"]
+auth-jwks = ["auth", "http-client", "common-auth/jwks"]
+auth-issuer = ["auth", "common-auth/issuer"]
+auth-password = ["auth", "common-auth/password"]
 otel = ["telemetry", "common-telemetry/otel", "common-axum?/otel", "common-http-client?/otel"]
 reqwest = ["common-error/reqwest"]
 serde_json = ["common-error/serde_json"]
@@ -40,6 +48,7 @@ sqlx = ["common-error/sqlx", "common-types?/sqlx"]
 
 [dependencies]
 common-error.workspace = true
+common-auth = { workspace = true, optional = true }
 common-axum = { workspace = true, optional = true }
 common-config = { workspace = true, optional = true }
 common-db = { workspace = true, optional = true }

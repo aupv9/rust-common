@@ -1,0 +1,38 @@
+[package]
+name = "common-auth"
+description = "Authentication and authorization: JWT verification via JWKS or static keys, JWT issuing, API keys, password hashing, RBAC and scope checks."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+publish.workspace = true
+
+[features]
+default = ["jwks"]
+jwks = ["dep:common-http-client"]
+issuer = []
+password = ["dep:argon2"]
+
+[dependencies]
+argon2 = { workspace = true, optional = true }
+aws-lc-rs.workspace = true
+base64.workspace = true
+common-error = { workspace = true, features = ["serde_json"] }
+common-http-client = { workspace = true, optional = true }
+common-types.workspace = true
+jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["sync", "rt"] }
+tracing.workspace = true
+
+[dev-dependencies]
+axum = { workspace = true, features = ["tokio", "http1", "json"] }
+common-http-client.workspace = true
+common-resilience.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }
+
+[lints]
+workspace = true
