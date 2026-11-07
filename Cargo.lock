@@ -488,6 +488,9 @@ dependencies = [
  "common-types",
  "futures-util",
  "http-body-util",
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "pin-project-lite",
  "serde",
  "serde_json",
  "tokio",
@@ -2008,6 +2011,7 @@ dependencies = [
  "portable-atomic",
  "rand 0.9.5",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

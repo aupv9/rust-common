@@ -29,7 +29,7 @@ You can depend on the individual `common-*` crates, or on the `common` facade an
 - **One error type end to end.** `common::Error` carries a kind, a stable machine-readable code, a message and a source. It maps to HTTP status codes and to [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) `application/problem+json` responses, and is built from `sqlx`, `reqwest`, `serde_json` and `io` errors.
 - **An axum stack with defaults.** Request IDs, tracing spans, panic recovery, timeouts, gzip, CORS, body limits, `/health/live` and `/health/ready`, and problem+json for every error, including 404, 405 and extractor rejections.
 - **Graceful lifecycle.** Shuts down on SIGINT/SIGTERM, supervises background tasks (a failing or panicking task stops the service), and reports a draining state so load balancers stop sending traffic first.
-- **Observability.** `tracing` output in pretty, compact or JSON format. Behind the `otel` feature: OTLP gRPC export of traces and metrics, and W3C trace-context propagation on incoming and outgoing requests.
+- **Observability.** `tracing` output in pretty, compact or JSON format. Behind the `otel` feature: OTLP gRPC export of traces and metrics, HTTP server metrics that follow the OpenTelemetry semantic conventions, and W3C trace-context propagation on incoming and outgoing requests.
 - **Authentication and authorization.** JWT verification against an IdP's JWKS (cached, rotation-aware, outage-tolerant) or static keys, JWT issuing, hashed API keys, Argon2id passwords, and a `Principal` with roles, scopes and an optional tenant. Role/scope checks as axum layers, resource policies in handlers.
 - **Postgres via sqlx.** Pool setup, statement timeouts, health checks, migrations, and a `transaction` helper that commits on `Ok` and rolls back on `Err`.
 - **Resilient outbound HTTP.** Timeouts, retries with exponential backoff and jitter (idempotent methods only), a circuit breaker per client, and problem+json errors from upstream services passed through with their code intact.
@@ -156,7 +156,7 @@ The `common` facade enables nothing beyond the error types by default.
 | `auth-jwks` | JWKS key source (implies `auth`, `http-client`) |
 | `auth-issuer` | `JwtIssuer` (implies `auth`) |
 | `auth-password` | Argon2id password hashing (implies `auth`) |
-| `otel` | OpenTelemetry export in `telemetry`; trace-context extraction in `axum` and injection in `http-client` |
+| `otel` | OpenTelemetry export in `telemetry`; HTTP server metrics and trace-context extraction in `axum`; trace-context injection in `http-client` |
 | `sqlx` | `From<sqlx::Error>`; Postgres `Encode`/`Decode` for `Id<T>` and `NonEmptyString` |
 | `reqwest` | `From<reqwest::Error>` |
 | `serde_json` | `From<serde_json::Error>` |
@@ -187,7 +187,7 @@ The MSRV is **1.94** (edition 2024), required by sqlx 0.9. CI checks it on every
 - [x] Service kit: lifecycle, axum, telemetry, OpenTelemetry
 - [x] Data and integration: Postgres, HTTP client, resilience, test helpers
 - [x] Authentication and authorization
-- [ ] HTTP server metrics
+- [x] HTTP server metrics
 - [ ] On demand: caching, messaging, gRPC
 
 Ideas and requests are welcome in [issues](https://github.com/aupv9/rust-common/issues).

@@ -38,6 +38,7 @@ jsonwebtoken = { version = "11", default-features = false, features = ["use_pem"
 opentelemetry = { version = "0.33", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.33", default-features = false, features = ["grpc-tonic", "trace", "metrics"] }
 opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace", "metrics"] }
+pin-project-lite = "0.2"
 serde = { version = "1", features = ["derive"] }
 reqwest = { version = "0.13", default-features = false }
 serde_json = "1"

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **common-test**: `init_tracing`, `TestPostgres` and `TestApp`/`TestResponse`.
 - **common-auth**: `Principal` with subject, optional tenant, roles, scopes and claims; JWT verification with static keys or a cached JWKS (single-flight refresh, rate-limited refetch on unknown `kid`, stale keys during IdP outages); configurable claim mapping with JSON pointers; hashed API keys; `Requirement` (role/scope combinators) and `Policy<R>` for resource checks; `issuer` feature for signing JWTs and publishing a JWKS; `password` feature for Argon2id.
 - **common-axum**: `auth` feature with `with_auth` middleware, `Auth` / `Option<Auth>` extractors and the `require` route layer; request spans record `enduser.id`.
+- **common-axum**: with `otel`, the default stack records `http.server.request.duration` and `http.server.active_requests` following the OpenTelemetry HTTP semantic conventions; `HttpMetricsLayer` for routers built without `with_defaults`.
 - **common**: facade crate with feature flags for every crate above.
 
 ### Changed
