@@ -28,6 +28,7 @@ pub fn with_defaults(router: Router, cfg: &ServerConfig) -> Result<Router> {
     let cors = cors_layer(&cfg.cors)?;
     let stack = ServiceBuilder::new()
         .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestIdV7))
+        .layer(metrics_layer())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span as fn(&Request<Body>) -> Span)
@@ -49,6 +50,16 @@ pub fn with_defaults(router: Router, cfg: &ServerConfig) -> Result<Router> {
         .method_not_allowed_fallback(method_not_allowed)
         .layer(DefaultBodyLimit::max(cfg.body_limit_bytes))
         .layer(stack))
+}
+
+#[cfg(feature = "otel")]
+fn metrics_layer() -> crate::metrics::HttpMetricsLayer {
+    crate::metrics::HttpMetricsLayer::global()
+}
+
+#[cfg(not(feature = "otel"))]
+fn metrics_layer() -> tower::layer::util::Identity {
+    tower::layer::util::Identity::new()
 }
 
 #[derive(Clone, Copy)]

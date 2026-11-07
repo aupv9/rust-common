@@ -28,14 +28,44 @@ cors.allowed_origins = ["https://app.example.com"]
 ## Middleware, outermost first
 
 1. `x-request-id`: generates a UUID v7 when the client does not send one and echoes it in the response
-2. `http.request` span with method, matched route, status and request id; with `otel`, the span continues the trace from the incoming `traceparent` header
-3. Panic recovery → 500 problem+json
-4. Request timeout → 504 problem+json
-5. gzip compression
-6. CORS, only when `cors.allowed_origins` is non-empty; `["*"]` allows any origin
-7. Request body size limit
+2. With `otel`: HTTP server metrics (see [Metrics](#metrics))
+3. `http.request` span with method, matched route, status and request id; with `otel`, the span continues the trace from the incoming `traceparent` header
+4. Panic recovery → 500 problem+json
+5. Request timeout → 504 problem+json
+6. gzip compression
+7. CORS, only when `cors.allowed_origins` is non-empty; `["*"]` allows any origin
+8. Request body size limit
 
 Unknown routes return 404 and wrong methods return 405, both as problem+json. `/health/live` and `/health/ready` sit outside the middleware so probes do not flood the logs. Note that `with_defaults` replaces the router's `fallback`.
+
+## Metrics
+
+With the `otel` feature, the default stack records two instruments from the [OpenTelemetry HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/) through the global meter provider, which `common_telemetry::init` sets up when `otlp.metrics = true`:
+
+| Instrument | Type | Attributes |
+|---|---|---|
+| `http.server.request.duration` (`s`) | Histogram | `http.request.method`, `url.scheme`, `http.route`, `http.response.status_code`, `network.protocol.version`, `error.type` |
+| `http.server.active_requests` (`{request}`) | UpDownCounter | `http.request.method`, `url.scheme` |
+
+- `http.route` is the matched route template (`/orders/{id}`), never the raw path. Unmatched requests have no `http.route`, so 404 scans cannot blow up cardinality.
+- Methods outside the standard set are recorded as `_OTHER`.
+- `error.type` is the status code for 5xx responses, including panics (500) and timeouts (504).
+- Duration is measured until the response headers are ready. Histogram buckets follow the semantic conventions, from 5 ms to 10 s.
+- A request dropped before it completes, for example on client disconnect, leaves the active count but records no duration.
+- Health routes are not measured.
+
+The meter is resolved on the first request, so the router can be built before `init`. When metrics are disabled the global provider is a no-op and the overhead is negligible.
+
+`HttpMetricsLayer` can be used on its own, for a router that does not go through `with_defaults` or with an explicit meter:
+
+```rust
+use common_axum::HttpMetricsLayer;
+
+let router = router.layer(HttpMetricsLayer::global());
+let router = router.layer(HttpMetricsLayer::new(&meter_provider.meter("my-service")));
+```
+
+Apply it with `Router::layer` rather than outside the router, otherwise the matched route is not available yet.
 
 ## Errors
 
@@ -96,5 +126,5 @@ Using `Auth` or `require` on a router without `with_auth` returns 500 rather tha
 
 | Feature | Enables |
 |---|---|
-| `otel` | Continues incoming W3C trace context |
+| `otel` | HTTP server metrics; continues incoming W3C trace context |
 | `auth` | `with_auth`, `Auth`, `require` (see above) |

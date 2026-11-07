@@ -11,7 +11,12 @@ publish.workspace = true
 
 [features]
 default = []
-otel = ["dep:common-telemetry", "common-telemetry/otel"]
+otel = [
+    "dep:common-telemetry",
+    "common-telemetry/otel",
+    "dep:opentelemetry",
+    "dep:pin-project-lite",
+]
 auth = ["dep:common-auth", "dep:futures-util"]
 
 [dependencies]
@@ -22,6 +27,8 @@ common-lifecycle.workspace = true
 common-telemetry = { workspace = true, optional = true }
 common-types.workspace = true
 futures-util = { workspace = true, optional = true }
+opentelemetry = { workspace = true, optional = true }
+pin-project-lite = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["net"] }
@@ -32,8 +39,9 @@ tracing.workspace = true
 [dev-dependencies]
 common-auth = { workspace = true, features = ["issuer"] }
 http-body-util.workspace = true
+opentelemetry_sdk = { workspace = true, features = ["testing"] }
 serde_json.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "time", "test-util"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time", "test-util"] }
 
 [lints]
 workspace = true
