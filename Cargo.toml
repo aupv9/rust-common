@@ -26,7 +26,7 @@ common-auth = { path = "crates/common-auth", version = "0.1.0", default-features
 argon2 = { version = "0.6", default-features = false, features = ["alloc", "getrandom", "password-hash"] }
 aws-lc-rs = "1"
 axum = { version = "0.8", default-features = false }
-base64 = "0.22"
+base64 = "0.23"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 bytes = "1"
 config = { version = "0.15", default-features = false, features = ["toml"] }

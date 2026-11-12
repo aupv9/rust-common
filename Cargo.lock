@@ -464,7 +464,7 @@ dependencies = [
  "argon2",
  "aws-lc-rs",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "common-error",
  "common-http-client",
  "common-resilience",
